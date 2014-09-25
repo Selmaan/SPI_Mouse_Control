@@ -1,3 +1,6 @@
+// the sensor communicates using SPI
+#include <SPI.h>
+
 // Define the pins
 const int chipSelectPin = 10;
 const int xVelPin = 5;
@@ -6,9 +9,7 @@ int xVel = 0;
 int yVel = 0;
 int xFilt = 0;
 int yFilt = 0;
-  
-// the sensor communicates using SPI, so include the library:
-#include <SPI.h>
+int stopCount = 0;
 
 void setup() {
   pinMode(chipSelectPin, OUTPUT);
@@ -29,9 +30,10 @@ void setup() {
 }
 
 void loop() {
-    delay(5);
+    delay(1);
     byte Motion = ((readRegister(0x02) & (1 << 8-1)) != 0);
     if (Motion == 1){
+      stopCount = 0;
       xVel = readRegister(0x03);
       yVel = readRegister(0x04); 
       if (xVel > 127){
@@ -42,11 +44,17 @@ void loop() {
       }
      }
       else {
-        xVel = 0;
-        yVel = 0;
+        xVel = xVel;
+        yVel = yVel;
+        stopCount = stopCount + 1;
       }
-    xFilt = xFilt*.67 + xVel*.33;
-    yFilt = yFilt*.67 + yVel*.33;
+    if (stopCount > 30){
+      stopCount = 0;
+      xVel = 0;
+      yVel = 0;
+    }
+    xFilt = xFilt*.9 + xVel*.1;
+    yFilt = yFilt*.9 + yVel*.1;
     analogWrite(xVelPin, (xFilt+128));
     analogWrite(yVelPin, (yFilt+128));
 }
