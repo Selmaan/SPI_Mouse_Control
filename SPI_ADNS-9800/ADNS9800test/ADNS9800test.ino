@@ -73,9 +73,13 @@ void setup() {
   SPI.setClockDivider(2);
   
   delay(1000);
-  performStartup();  
+  performStartup();
+  delay(10);
+  adns_write_reg(REG_Configuration_I, 0x29); // maximum resolution
+  // adns_write_reg(REG_Configuration_I, 0x09); // default resolution
+  delay(10);  
   dispRegisters();
-  delay(100);
+  delay(1000);
   initComplete=9;
 
 }
@@ -186,9 +190,9 @@ void performStartup(void){
 
 void dispRegisters(void){
   int oreg[7] = {
-    0x00,0x3F,0x2A,0x02  };
+    0x00,0x3F,0x2A,0x0F  };
   char* oregname[] = {
-    "Product_ID","Inverse_Product_ID","SROM_Version","Motion"  };
+    "Product_ID","Inverse_Product_ID","SROM_Version","CPI"  };
   byte regres;
 
   digitalWrite(ncs,LOW);
@@ -211,27 +215,16 @@ void dispRegisters(void){
 int readXY(int *xy){
   digitalWrite(ncs,LOW);
   
-  int x_l = adns_read_reg(REG_Delta_X_L);
-  int x_h = adns_read_reg(REG_Delta_X_H);
-  int y_l = adns_read_reg(REG_Delta_Y_L);
-  int y_h = adns_read_reg(REG_Delta_Y_H);
-  
-  if (x_l > 127){
-    x_l = x_l-256;
-  }
-  if (y_l > 127){
-    y_l = y_l-256;
-  }
-  if (x_h > 127){
-    x_h = x_h-255;
-  }
-  if (y_h > 127){
-    y_h = y_h-255;
-  }
-  
-  xy[0] = (int)(x_h * 128 + x_l);
-  xy[1] = (int)(y_h * 128 + y_l);
+  xy[0] = (int)(adns_read_reg(REG_Delta_X_H) << 8) + adns_read_reg(REG_Delta_X_L);
+  xy[1] = (int)(adns_read_reg(REG_Delta_Y_H) << 8) + adns_read_reg(REG_Delta_Y_L);
 
+  if(xy[0] & 0x8000){
+    xy[0] = -1 * ((~xy[0]) + 1);
+  }
+  if (xy[1] & 0x8000){
+    xy[1] = -1 * ((~xy[1]) + 1);
+  }
+  
   //Convert from 2's complement
 //  if(xy[1] & 0x80){
 //    xy[1] = -1 * ((xy[1] ^ 0xff) + 1);
