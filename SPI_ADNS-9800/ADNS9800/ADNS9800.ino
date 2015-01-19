@@ -2,14 +2,12 @@
 #include <avr/pgmspace.h>
 
 byte initComplete=0;
-byte Motion = 0;
+byte Motion;
 byte xH;
 byte xL;
 byte yH;
 byte yL;
 int xydat[2];
-int xCum = 0;
-int yCum = 0;
 
 const int ncs = 0;
 const int xVelPin = 3;
@@ -65,20 +63,16 @@ const int yVelPin = 4;
 extern const unsigned short firmware_length;
 extern prog_uchar firmware_data[];
 
-void setup() {
-  Serial.begin(38400);
+void setup() {  
   analogWriteFrequency(xVelPin,11500);
   analogWriteFrequency(yVelPin,11500);
   analogWriteResolution(12);
-  pinMode (ncs, OUTPUT);
-  
-//  attachInterrupt(0, UpdatePointer, FALLING);
-  
+  pinMode (ncs, OUTPUT);  
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(2);
-  
+ 
   delay(1000);
   performStartup();
   delay(10);
@@ -86,7 +80,7 @@ void setup() {
   //adns_write_reg(REG_Configuration_I, 0x09); // default resolution
   //adns_write_reg(REG_Configuration_I, 0x01); // minimum resolution
   delay(10);  
-  dispRegisters();
+  //dispRegisters();
   delay(3000);
   initComplete=9;
 
@@ -183,18 +177,7 @@ void performStartup(void){
   adns_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0 );
   
   delay(10);
-
-  Serial.println("Optical Chip Initialized");
   }
-
-//void UpdatePointer(void){
-//  if(initComplete==9){
-//    int xydat[2];
-//    readXY(&xydat[0]);
-//    Mouse.move(xydat[0],xydat[1]);
-//    }
-//  //Serial.print("x");
-//  }
 
 void dispRegisters(void){
   int oreg[7] = {
@@ -247,13 +230,5 @@ int readXY(int *xy){
     readXY(&xydat[0]);
     analogWrite(xVelPin,xydat[0]+2048);
     analogWrite(yVelPin,xydat[1]+2048);
-    xCum = xCum + xydat[0];
-    yCum = yCum + xydat[1];
-    
-    Serial.println("Motion = " + String(Motion));
-    Serial.println("intX = " + String(xCum));
-    Serial.println("intY = " + String(yCum));
-    Serial.println("Squal = " + String(adns_read_reg(REG_SQUAL)));
-    // UpdatePointer();
     delay(5);
   }
