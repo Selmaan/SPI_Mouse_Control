@@ -50,6 +50,11 @@
 
 byte initComplete=0;
 byte Motion = 0;
+byte xH;
+byte xL;
+byte yH;
+byte yL;
+int xydat[2];
 int xVel = 0;
 int yVel = 0;
 int xCum = 0;
@@ -76,10 +81,11 @@ void setup() {
   performStartup();
   delay(10);
   adns_write_reg(REG_Configuration_I, 0x29); // maximum resolution
-  // adns_write_reg(REG_Configuration_I, 0x09); // default resolution
+  //adns_write_reg(REG_Configuration_I, 0x09); // default resolution
+  //adns_write_reg(REG_Configuration_I, 0x01); // minimum resolution
   delay(10);  
   dispRegisters();
-  delay(1000);
+  delay(3000);
   initComplete=9;
 
 }
@@ -215,32 +221,27 @@ void dispRegisters(void){
 int readXY(int *xy){
   digitalWrite(ncs,LOW);
   
-  xy[0] = (int)(adns_read_reg(REG_Delta_X_H) << 8) + adns_read_reg(REG_Delta_X_L);
-  xy[1] = (int)(adns_read_reg(REG_Delta_Y_H) << 8) + adns_read_reg(REG_Delta_Y_L);
+  Motion = (adns_read_reg(REG_Motion) & (1 << 8-1)) != 0;
+  xL = adns_read_reg(REG_Delta_X_L);
+  xH = adns_read_reg(REG_Delta_X_H);
+  yL = adns_read_reg(REG_Delta_Y_L);
+  yH = adns_read_reg(REG_Delta_Y_H);
+  xy[0] = (xH << 8) + xL;
+  xy[1] = (yH << 8) + yL;
 
   if(xy[0] & 0x8000){
-    xy[0] = -1 * ((~xy[0]) + 1);
+    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
   }
   if (xy[1] & 0x8000){
-    xy[1] = -1 * ((~xy[1]) + 1);
+    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
   }
   
-  //Convert from 2's complement
-//  if(xy[1] & 0x80){
-//    xy[1] = -1 * ((xy[1] ^ 0xff) + 1);
-//    }
-//  if(xy[0] & 0x80){
-//    xy[0] = -1 * ((xy[0] ^ 0xff) + 1);
-//    }
-//  xy[0] = xy[0] * -1;
   digitalWrite(ncs,HIGH);     
   } 
 
   
   void loop() {
   
-    Motion = (adns_read_reg(REG_Motion) & (1 << 8-1)) != 0;
-    int xydat[2];
     readXY(&xydat[0]);
     xCum = xCum + xydat[0];
     yCum = yCum + xydat[1];
@@ -251,27 +252,4 @@ int readXY(int *xy){
     Serial.println("Squal = " + String(adns_read_reg(REG_SQUAL)));
     // UpdatePointer();
     delay(5);
-    
-    
-//      int x_l = adns_read_reg(REG_Delta_X_L);
-//      int x_h = adns_read_reg(REG_Delta_X_H);
-//      int y_l = adns_read_reg(REG_Delta_Y_L);
-//      int y_h = adns_read_reg(REG_Delta_Y_H);
-//      
-//      if (x_l > 127){
-//        x_l = x_l-256;
-//      }
-//      if (y_l > 127){
-//        y_l = y_l-256;
-//      }
-//      if (x_h > 127){
-//        x_h = x_h-256 + 1;
-//      }
-//      if (y_h > 127){
-//        y_h = y_h-256 + 1;
-//      }
-//      Serial.println("X_L = " + String(x_l));
-//      Serial.println("X_H = " + String(x_h));
-//      Serial.println("X_tot = " + String(x_h * 128 + x_l));
-//      delay(1000);
   }
