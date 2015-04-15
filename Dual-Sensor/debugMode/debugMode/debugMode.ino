@@ -8,13 +8,45 @@ byte xL;
 byte yH;
 byte yL;
 int xydat[2];
-int xCum = 0;
+int xy2dat[2];
+double dP;
+double dR;
+double dY;
+int pCum = 0;
+int rCum = 0;
 int yCum = 0;
 
 const int ncs = 0;
 const int ncs2 = 1;
-const int xVelPin = 3;
-const int yVelPin = 4;
+const int pVelPin = 3;
+const int rVelPin = 4;
+const int yVelPin = 5;
+
+//const double px1 = 0.8151;
+//const double rx1 = 0.1849;
+//const double yx1 = -0.5959;
+//const double py1 = 0.2414;
+//const double ry1 = -0.2414;
+//const double yy1 = -0.7779;
+//const double px2 = -0.1849;
+//const double rx2 = -0.8151;
+//const double yx2 = 0.5959;
+//const double py2 = -0.2414;
+//const double ry2 = 0.2414;
+//const double yy2 = -0.7779;
+
+const double px1 = 1;
+const double rx1 = 0;
+const double yx1 = 0;
+const double py1 = 0;
+const double ry1 = 0;
+const double yy1 = -1.557;
+const double px2 = 0;
+const double rx2 = -1;
+const double yx2 = 1.1918;
+const double py2 = 0;
+const double ry2 = 0;
+const double yy2 = 0;
 
 // Registers
 #define REG_Product_ID                           0x00
@@ -68,13 +100,12 @@ extern prog_uchar firmware_data[];
 
 void setup() {
   Serial.begin(38400);
-  analogWriteFrequency(xVelPin,11500);
+  analogWriteFrequency(pVelPin,11500);
+  analogWriteFrequency(rVelPin,11500);
   analogWriteFrequency(yVelPin,11500);
   analogWriteResolution(12);
   pinMode (ncs, OUTPUT);
   pinMode (ncs2, OUTPUT);
-  digitalWrite(ncs2, HIGH);
-//  attachInterrupt(0, UpdatePointer, FALLING);
   
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
@@ -84,11 +115,18 @@ void setup() {
   delay(1000);
   performStartup();
   delay(10);
-  adns_write_reg(REG_Configuration_I, 0x29); // maximum resolution
+  performStartup2();
+  delay(10);
+  //adns_write_reg(REG_Configuration_I, 0x29); // maximum resolution
   //adns_write_reg(REG_Configuration_I, 0x09); // default resolution
-  //adns_write_reg(REG_Configuration_I, 0x01); // minimum resolution
+  adns_write_reg(REG_Configuration_I, 0x01); // minimum resolution
+  delay(10);
+  //adns2_write_reg(REG_Configuration_I, 0x09); // default resolution
+  adns2_write_reg(REG_Configuration_I, 0x01); // minimum resolution
   delay(3000);  
   dispRegisters();
+  delay(3000);
+  dispRegisters2();
   delay(3000);
   initComplete=9;
 
@@ -98,8 +136,16 @@ void adns_com_begin(){
   digitalWrite(ncs, LOW);
 }
 
+void adns2_com_begin(){
+  digitalWrite(ncs2, LOW);
+}
+
 void adns_com_end(){
   digitalWrite(ncs, HIGH);
+}
+
+void adns2_com_end(){
+  digitalWrite(ncs2, HIGH);
 }
 
 byte adns_read_reg(byte reg_addr){
@@ -118,6 +164,22 @@ byte adns_read_reg(byte reg_addr){
   return data;
 }
 
+byte adns2_read_reg(byte reg_addr){
+  adns2_com_begin();
+  
+  // send adress of the register, with MSBit = 0 to indicate it's a read
+  SPI.transfer(reg_addr & 0x7f );
+  delayMicroseconds(100); // tSRAD
+  // read data
+  byte data = SPI.transfer(0);
+  
+  delayMicroseconds(1); // tSCLK-NCS for read operation is 120ns
+  adns2_com_end();
+  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-NCS
+
+  return data;
+}
+
 void adns_write_reg(byte reg_addr, byte data){
   adns_com_begin();
   
@@ -131,9 +193,22 @@ void adns_write_reg(byte reg_addr, byte data){
   delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-NCS. Could be shortened, but is looks like a safe lower bound 
 }
 
+void adns2_write_reg(byte reg_addr, byte data){
+  adns2_com_begin();
+  
+  //send adress of the register, with MSBit = 1 to indicate it's a write
+  SPI.transfer(reg_addr | 0x80 );
+  //sent data
+  SPI.transfer(data);
+  
+  delayMicroseconds(20); // tSCLK-NCS for write operation
+  adns2_com_end();
+  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-NCS. Could be shortened, but is looks like a safe lower bound 
+}
+
 void adns_upload_firmware(){
   // send the firmware to the chip, cf p.18 of the datasheet
-  Serial.println("Uploading firmware...");
+  Serial.println("Uploading firmware to chip 1...");
   // set the configuration_IV register in 3k firmware mode
   adns_write_reg(REG_Configuration_IV, 0x02); // bit 1 = 1 for 3k mode, other bits are reserved 
   
@@ -159,7 +234,37 @@ void adns_upload_firmware(){
     delayMicroseconds(15);
   }
   adns_com_end();
+}
+
+void adns2_upload_firmware(){
+  // send the firmware to the chip, cf p.18 of the datasheet
+  Serial.println("Uploading firmware to chip 2...");
+  // set the configuration_IV register in 3k firmware mode
+  adns2_write_reg(REG_Configuration_IV, 0x02); // bit 1 = 1 for 3k mode, other bits are reserved 
+  
+  // write 0x1d in SROM_enable reg for initializing
+  adns2_write_reg(REG_SROM_Enable, 0x1d); 
+  
+  // wait for more than one frame period
+  delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
+  
+  // write 0x18 to SROM_enable to start SROM download
+  adns2_write_reg(REG_SROM_Enable, 0x18); 
+  
+  // write the SROM file (=firmware data) 
+  adns2_com_begin();
+  SPI.transfer(REG_SROM_Load_Burst | 0x80); // write burst destination adress
+  delayMicroseconds(15);
+  
+  // send all bytes of the firmware
+  unsigned char c;
+  for(int i = 0; i < firmware_length; i++){ 
+    c = (unsigned char)pgm_read_byte(firmware_data + i);
+    SPI.transfer(c);
+    delayMicroseconds(15);
   }
+  adns2_com_end();
+}
 
 
 void performStartup(void){
@@ -186,17 +291,36 @@ void performStartup(void){
   
   delay(10);
 
-  Serial.println("Optical Chip Initialized");
-  }
+  Serial.println("Optical Chip 1 Initialized");
+}
 
-//void UpdatePointer(void){
-//  if(initComplete==9){
-//    int xydat[2];
-//    readXY(&xydat[0]);
-//    Mouse.move(xydat[0],xydat[1]);
-//    }
-//  //Serial.print("x");
-//  }
+void performStartup2(void){
+  adns2_com_end(); // ensure that the serial port is reset
+  adns2_com_begin(); // ensure that the serial port is reset
+  adns2_com_end(); // ensure that the serial port is reset
+  adns2_write_reg(REG_Power_Up_Reset, 0x5a); // force reset
+  delay(50); // wait for it to reboot
+  // read registers 0x02 to 0x06 (and discard the data)
+  adns2_read_reg(REG_Motion);
+  adns2_read_reg(REG_Delta_X_L);
+  adns2_read_reg(REG_Delta_X_H);
+  adns2_read_reg(REG_Delta_Y_L);
+  adns2_read_reg(REG_Delta_Y_H);
+  // upload the firmware
+  adns2_upload_firmware();
+  delay(10);
+  //enable laser(bit 0 = 0b), in normal mode (bits 3,2,1 = 000b)
+  // reading the actual value of the register is important because the real
+  // default value is different from what is said in the datasheet, and if you
+  // change the reserved bytes (like by writing 0x00...) it would not work.
+  byte laser_ctrl0 = adns_read_reg(REG_LASER_CTRL0);
+  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0 );
+  
+  delay(10);
+
+  Serial.println("Optical Chip 2 Initialized");
+}
+
 
 void dispRegisters(void){
   int oreg[7] = {
@@ -222,6 +346,30 @@ void dispRegisters(void){
   digitalWrite(ncs,HIGH);
 }
 
+void dispRegisters2(void){
+  int oreg[7] = {
+    0x00,0x3F,0x2A,0x0F  };
+  char* oregname[] = {
+    "Product_ID2","Inverse_Product_ID2","SROM_Version2","CPI2"  };
+  byte regres;
+
+  digitalWrite(ncs2,LOW);
+
+  int rctr=0;
+  for(rctr=0; rctr<4; rctr++){
+    SPI.transfer(oreg[rctr]);
+    delay(1);
+    Serial.println("---");
+    Serial.println(oregname[rctr]);
+    Serial.println(oreg[rctr],HEX);
+    regres = SPI.transfer(0);
+    Serial.println(regres,BIN);  
+    Serial.println(regres,HEX);  
+    delay(1);
+  }
+  digitalWrite(ncs2,HIGH);
+}
+
 int readXY(int *xy){
   digitalWrite(ncs,LOW);
   
@@ -241,22 +389,49 @@ int readXY(int *xy){
   }
   
   digitalWrite(ncs,HIGH);     
-  } 
+}
+
+int readXY2(int *xy){
+  digitalWrite(ncs2,LOW);
+  
+  Motion = (adns2_read_reg(REG_Motion) & (1 << 8-1)) != 0;
+  xL = adns2_read_reg(REG_Delta_X_L);
+  xH = adns2_read_reg(REG_Delta_X_H);
+  yL = adns2_read_reg(REG_Delta_Y_L);
+  yH = adns2_read_reg(REG_Delta_Y_H);
+  xy[0] = (xH << 8) + xL;
+  xy[1] = (yH << 8) + yL;
+
+  if(xy[0] & 0x8000){
+    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+  }
+  if (xy[1] & 0x8000){
+    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
+  }
+  
+  digitalWrite(ncs2,HIGH);     
+}
 
   
   void loop() {
   
     readXY(&xydat[0]);
-    analogWrite(xVelPin,xydat[0]+2048);
-    analogWrite(yVelPin,xydat[1]+2048);
-    xCum = xCum + xydat[0];
-    yCum = yCum + xydat[1];
+    readXY2(&xy2dat[0]);
+    dP = px1*xydat[0] + py1*xydat[1] + px2*xy2dat[0] + py2*xy2dat[1];
+    dR = rx1*xydat[0] + ry1*xydat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
+    dY = yx1*xydat[0] + yy1*xydat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
+    //analogWrite(xVelPin,xydat[0]+2048);
+    //analogWrite(yVelPin,xydat[1]+2048);
+    pCum = pCum + dP;
+    rCum = rCum + dR;
+    yCum = yCum + dY;
     
     Serial.println("Prod ID = " + String(adns_read_reg(REG_Product_ID)));
     Serial.println("Motion = " + String(Motion));
-    Serial.println("intX = " + String(xCum));
+    Serial.println("intP = " + String(pCum));
+    Serial.println("intR = " + String(rCum));
     Serial.println("intY = " + String(yCum));
     Serial.println("Squal = " + String(adns_read_reg(REG_SQUAL)));
     // UpdatePointer();
-    delay(100);
+    delay(10);
   }
