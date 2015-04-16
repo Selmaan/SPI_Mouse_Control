@@ -12,9 +12,6 @@ int xy2dat[2];
 double dP;
 double dR;
 double dY;
-int pCum = 0;
-int rCum = 0;
-int yCum = 0;
 
 const int ncs = 0;
 const int ncs2 = 1;
@@ -123,11 +120,11 @@ void setup() {
   delay(10);
   adns2_write_reg(REG_Configuration_I, 0x09); // default resolution
   //adns2_write_reg(REG_Configuration_I, 0x01); // minimum resolution
-  delay(3000);  
+  delay(1000);  
   dispRegisters();
-  delay(3000);
+  delay(10);
   dispRegisters2();
-  delay(3000);
+  delay(1000);
   initComplete=9;
 
 }
@@ -420,18 +417,8 @@ int readXY2(int *xy){
     dP = px1*xydat[0] + py1*xydat[1] + px2*xy2dat[0] + py2*xy2dat[1];
     dR = rx1*xydat[0] + ry1*xydat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
     dY = yx1*xydat[0] + yy1*xydat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
-    //analogWrite(xVelPin,xydat[0]+2048);
-    //analogWrite(yVelPin,xydat[1]+2048);
-    pCum = pCum*0.9 + dP;
-    rCum = rCum*0.9 + dR;
-    yCum = yCum*0.9 + dY;
-    
-    Serial.println("Prod ID = " + String(adns_read_reg(REG_Product_ID)));
-    Serial.println("Motion = " + String(Motion));
-    Serial.println("intP = " + String(pCum));
-    Serial.println("intR = " + String(rCum));
-    Serial.println("intY = " + String(yCum));
-    Serial.println("Squal = " + String(adns_read_reg(REG_SQUAL)));
-    // UpdatePointer();
+    analogWrite(pVelPin,dP+2048);
+    analogWrite(rVelPin,dR+2048);
+    analogWrite(yVelPin,dY+2048);
     delay(10);
   }
