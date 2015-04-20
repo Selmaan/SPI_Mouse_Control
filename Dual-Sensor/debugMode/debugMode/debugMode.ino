@@ -22,31 +22,31 @@ const int pVelPin = 3;
 const int rVelPin = 4;
 const int yVelPin = 5;
 
-//const double px1 = 0.8151;
-//const double rx1 = 0.1849;
-//const double yx1 = -0.5959;
-//const double py1 = 0.2414;
-//const double ry1 = -0.2414;
-//const double yy1 = -0.7779;
-//const double px2 = -0.1849;
-//const double rx2 = -0.8151;
-//const double yx2 = 0.5959;
-//const double py2 = -0.2414;
-//const double ry2 = 0.2414;
-//const double yy2 = -0.7779;
+const double px1 = 0.8151;
+const double rx1 = 0.1849;
+const double yx1 = -0.5959;
+const double py1 = 0.2414;
+const double ry1 = -0.2414;
+const double yy1 = -0.7779;
+const double px2 = -0.1849;
+const double rx2 = -0.8151;
+const double yx2 = 0.5959;
+const double py2 = -0.2414;
+const double ry2 = 0.2414;
+const double yy2 = -0.7779;
 
-const double px1 = 1;
-const double rx1 = 0;
-const double yx1 = 0;
-const double py1 = 0;
-const double ry1 = 0;
-const double yy1 = -1.557;
-const double px2 = 0;
-const double rx2 = -1;
-const double yx2 = 1.1918;
-const double py2 = 0;
-const double ry2 = 0;
-const double yy2 = 0;
+//const double px1 = 1;
+//const double rx1 = 0;
+//const double yx1 = 0;
+//const double py1 = 0;
+//const double ry1 = 0;
+//const double yy1 = -1.557;
+//const double px2 = 0;
+//const double rx2 = -1;
+//const double yx2 = 1.1918;
+//const double py2 = 0;
+//const double ry2 = 0;
+//const double yy2 = 0;
 
 // Registers
 #define REG_Product_ID                           0x00
@@ -123,11 +123,11 @@ void setup() {
   delay(10);
   adns2_write_reg(REG_Configuration_I, 0x09); // default resolution
   //adns2_write_reg(REG_Configuration_I, 0x01); // minimum resolution
-  delay(3000);  
+  delay(1500);  
   dispRegisters();
-  delay(3000);
+  delay(1500);
   dispRegisters2();
-  delay(3000);
+  delay(1500);
   initComplete=9;
 
 }
@@ -420,8 +420,9 @@ int readXY2(int *xy){
     dP = px1*xydat[0] + py1*xydat[1] + px2*xy2dat[0] + py2*xy2dat[1];
     dR = rx1*xydat[0] + ry1*xydat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
     dY = yx1*xydat[0] + yy1*xydat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
-    //analogWrite(xVelPin,xydat[0]+2048);
-    //analogWrite(yVelPin,xydat[1]+2048);
+    analogWrite(pVelPin,dP+2048);
+    analogWrite(rVelPin,dR+2048);
+    analogWrite(yVelPin,dY+2048);
     pCum = pCum*0.9 + dP;
     rCum = rCum*0.9 + dR;
     yCum = yCum*0.9 + dY;
@@ -432,6 +433,7 @@ int readXY2(int *xy){
     Serial.println("intR = " + String(rCum));
     Serial.println("intY = " + String(yCum));
     Serial.println("Squal = " + String(adns_read_reg(REG_SQUAL)));
+    Serial.println("Squal2 = " + String(adns2_read_reg(REG_SQUAL)));
     // UpdatePointer();
     delay(10);
   }
