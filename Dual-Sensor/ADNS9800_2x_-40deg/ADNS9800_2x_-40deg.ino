@@ -19,31 +19,31 @@ const int pVelPin = 3;
 const int rVelPin = 4;
 const int yVelPin = 5;
 
-//const double px1 = 0.8151;
-//const double rx1 = 0.1849;
-//const double yx1 = -0.5959;
-//const double py1 = 0.2414;
-//const double ry1 = -0.2414;
-//const double yy1 = -0.7779;
-//const double px2 = -0.1849;
-//const double rx2 = -0.8151;
-//const double yx2 = 0.5959;
-//const double py2 = -0.2414;
-//const double ry2 = 0.2414;
-//const double yy2 = -0.7779;
+const double px1 = 0.8151;
+const double rx1 = 0.1849;
+const double yx1 = -0.5959;
+const double py1 = 0.2414;
+const double ry1 = -0.2414;
+const double yy1 = -0.7779;
+const double px2 = -0.1849;
+const double rx2 = -0.8151;
+const double yx2 = 0.5959;
+const double py2 = -0.2414;
+const double ry2 = 0.2414;
+const double yy2 = -0.7779;
 
-const double px1 = 1;
-const double rx1 = 0;
-const double yx1 = 0;
-const double py1 = 0;
-const double ry1 = 0;
-const double yy1 = -1.557;
-const double px2 = 0;
-const double rx2 = -1;
-const double yx2 = 1.1918;
-const double py2 = 0;
-const double ry2 = 0;
-const double yy2 = 0;
+//const double px1 = 1;
+//const double rx1 = 0;
+//const double yx1 = 0;
+//const double py1 = 0;
+//const double ry1 = 0;
+//const double yy1 = -1.557;
+//const double px2 = 0;
+//const double rx2 = -1;
+//const double yx2 = 1.1918;
+//const double py2 = 0;
+//const double ry2 = 0;
+//const double yy2 = 0;
 
 // Registers
 #define REG_Product_ID                           0x00
@@ -310,8 +310,8 @@ void performStartup2(void){
   // reading the actual value of the register is important because the real
   // default value is different from what is said in the datasheet, and if you
   // change the reserved bytes (like by writing 0x00...) it would not work.
-  byte laser_ctrl0 = adns_read_reg(REG_LASER_CTRL0);
-  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0 );
+  byte laser_ctrl0_2 = adns2_read_reg(REG_LASER_CTRL0);
+  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0_2 & 0xf0 );
   
   delay(10);
 

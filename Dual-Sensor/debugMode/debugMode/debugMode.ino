@@ -313,8 +313,8 @@ void performStartup2(void){
   // reading the actual value of the register is important because the real
   // default value is different from what is said in the datasheet, and if you
   // change the reserved bytes (like by writing 0x00...) it would not work.
-  byte laser_ctrl0 = adns_read_reg(REG_LASER_CTRL0);
-  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0 );
+  byte laser_ctrl0_2 = adns2_read_reg(REG_LASER_CTRL0);
+  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0_2 & 0xf0 );
   
   delay(10);
 
@@ -371,7 +371,7 @@ void dispRegisters2(void){
 }
 
 int readXY(int *xy){
-  digitalWrite(ncs,LOW);
+  //digitalWrite(ncs,LOW);
   
   Motion = (adns_read_reg(REG_Motion) & (1 << 8-1)) != 0;
   xL = adns_read_reg(REG_Delta_X_L);
@@ -388,11 +388,11 @@ int readXY(int *xy){
     xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
   }
   
-  digitalWrite(ncs,HIGH);     
+  //digitalWrite(ncs,HIGH);     
 }
 
 int readXY2(int *xy){
-  digitalWrite(ncs2,LOW);
+  //digitalWrite(ncs2,LOW);
   
   Motion = (adns2_read_reg(REG_Motion) & (1 << 8-1)) != 0;
   xL = adns2_read_reg(REG_Delta_X_L);
@@ -409,7 +409,7 @@ int readXY2(int *xy){
     xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
   }
   
-  digitalWrite(ncs2,HIGH);     
+  //digitalWrite(ncs2,HIGH);     
 }
 
   
@@ -428,12 +428,11 @@ int readXY2(int *xy){
     yCum = yCum*0.9 + dY;
     
     Serial.println("Prod ID = " + String(adns_read_reg(REG_Product_ID)));
-    Serial.println("Motion = " + String(Motion));
+    Serial.println("Prod2 ID = " + String(adns2_read_reg(REG_Product_ID)));
     Serial.println("intP = " + String(pCum));
     Serial.println("intR = " + String(rCum));
     Serial.println("intY = " + String(yCum));
     Serial.println("Squal = " + String(adns_read_reg(REG_SQUAL)));
     Serial.println("Squal2 = " + String(adns2_read_reg(REG_SQUAL)));
-    // UpdatePointer();
     delay(10);
   }
